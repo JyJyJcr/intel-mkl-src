@@ -56,19 +56,30 @@ fn main() -> Result<()> {
     //println!("cargo:rerun-if-env-changed=MKLROOT");
 
     for path in lib.link_paths {
-        println!("cargo:rustc-link-search={}", path.display());
+        println!("cargo::rustc-link-search={}", path.display());
     }
     for staticlib in lib.link_files {
         println!(
-            "cargo:rustc-link-lib=static:+verbatim={}",
+            "cargo::rustc-link-lib=static:+verbatim={}",
             staticlib.display()
         );
     }
     for ld_arg in lib.ld_args {
-        println!("cargo:rustc-link-arg=-Wl,{}", ld_arg.join(","));
+        println!("cargo::rustc-link-arg=-Wl,{}", ld_arg.join(","));
     }
-    for dylib in lib.libs {
-        println!("cargo:rustc-link-lib=dylib:-as-needed={}", dylib);
+    if cfg!(feature = "no-as-needed") {
+        for dylib in lib.libs {
+            println!("cargo::rustc-link-lib=dylib::-as-needed={}", dylib);
+        }
+    } else {
+        for dylib in &lib.libs {
+            println!("cargo::rustc-link-lib=dylib={}", dylib);
+        }
+        println!(
+            "cargo::metadata=LINKARG=-Wl,--no-as-needed,-l{},--as-needed",
+            lib.libs.join(",-l")
+        );
     }
+
     Ok(())
 }
