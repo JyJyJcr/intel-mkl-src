@@ -36,7 +36,7 @@ fn main() -> Result<()> {
         match (cfg!(feature = "ilp64"), cfg!(feature = "lp64")) {
             (true, false) => "ilp64",
             (false, true) => "lp64",
-            (false, false) => "ilp64",
+            (false, false) => "lp64",
             _ => {
                 panic!("conflicting features: both 'ilp64' and 'lp64' are enabled")
             }
@@ -53,16 +53,27 @@ fn main() -> Result<()> {
     let lib = pkg_config::Config::new()
         .cargo_metadata(false)
         .probe(&mkl)?;
-    //println!("cargo:rerun-if-env-changed=MKLROOT");
+    //println!("{:?}",lib);
 
     for path in lib.link_paths {
-        println!("cargo::rustc-link-search={}", path.display());
+        println!("cargo::rustc-link-search=native={}", path.display());
     }
     for staticlib in lib.link_files {
+        let search_path = staticlib
+            .parent()
+            .expect("static lib must have a parent directory");
+        let libname = staticlib
+            .file_name()
+            .expect("static lib must have a valid file name");
+
+        println!("cargo::rustc-link-search={}", search_path.display());
+
         println!(
             "cargo::rustc-link-lib=static:+verbatim={}",
-            staticlib.display()
+            libname.display()
         );
+
+        //println!("cargo::rustc-link-arg={}", staticlib.display());
     }
     for ld_arg in lib.ld_args {
         println!("cargo::rustc-link-arg=-Wl,{}", ld_arg.join(","));

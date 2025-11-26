@@ -2,9 +2,9 @@
 name = "intel-mkl-src"
 version = "0.8.1"
 authors = ["Toshiki Teramura <toshiki.teramura@gmail.com>"]
-edition = "2021"
+edition = "2024"
 
-rust-version = "1.77.0"
+rust-version = "1.87.0"
 
 description = "Redistribution of Intel(R) MKL as a crate"
 repository = "https://github.com/rust-math/intel-mkl-src"
