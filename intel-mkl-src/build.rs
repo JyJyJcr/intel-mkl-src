@@ -69,7 +69,7 @@ fn main() -> Result<()> {
     }
     if cfg!(feature = "no-as-needed") {
         for dylib in lib.libs {
-            println!("cargo::rustc-link-lib=dylib::-as-needed={}", dylib);
+            println!("cargo::rustc-link-lib=dylib:-as-needed={}", dylib);
         }
     } else {
         for dylib in &lib.libs {
