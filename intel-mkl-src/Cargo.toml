@@ -20,20 +20,25 @@ default = []
 
 # MKL config
 # https://software.intel.com/content/www/us/en/develop/articles/intel-math-kernel-library-intel-mkl-and-pkg-config-tool.html
-mkl-static-lp64-iomp   = []
-mkl-static-lp64-seq    = []
-mkl-static-ilp64-iomp  = []
-mkl-static-ilp64-seq   = []
-mkl-dynamic-lp64-iomp  = []
-mkl-dynamic-lp64-seq   = []
-mkl-dynamic-ilp64-iomp = []
-mkl-dynamic-ilp64-seq  = []
+mkl-static-lp64-iomp   = [ "static",  "lp64",  "iomp" ]
+mkl-static-lp64-seq    = [ "static",  "lp64",  "seq"  ]
+mkl-static-ilp64-iomp  = [ "static",  "ilp64", "iomp" ]
+mkl-static-ilp64-seq   = [ "static",  "ilp64", "seq"  ]
+mkl-dynamic-lp64-iomp  = [ "dynamic", "lp64",  "iomp" ]
+mkl-dynamic-lp64-seq   = [ "dynamic", "lp64",  "seq"  ]
+mkl-dynamic-ilp64-iomp = [ "dynamic", "ilp64", "iomp" ]
+mkl-dynamic-ilp64-seq  = [ "dynamic", "ilp64", "seq"  ]
+
+static = []
+dynamic = []
+
+lp64 = []
+ilp64 = []
+
+seq = []
+iomp = []
 
 [build-dependencies]
 anyhow = "1.0.58"
-ocipkg = "0.2.8"
-
-[build-dependencies.intel-mkl-tool]
-path = "../intel-mkl-tool"
-version = "0.8.0"
-default-features = false
+pkg-config = "0.3.32"
+# ocipkg = "0.2.8"

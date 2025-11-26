@@ -21,64 +21,54 @@
 // SOFTWARE.
 
 use anyhow::Result;
-use intel_mkl_tool::*;
-use std::str::FromStr;
-
-macro_rules! def_mkl_config {
-    ($cfg:literal) => {
-        #[cfg(feature = $cfg)]
-        const MKL_CONFIG: &str = $cfg;
-    };
-}
-
-def_mkl_config!("mkl-static-lp64-iomp");
-def_mkl_config!("mkl-static-lp64-seq");
-def_mkl_config!("mkl-static-ilp64-iomp");
-def_mkl_config!("mkl-static-ilp64-seq");
-def_mkl_config!("mkl-dynamic-lp64-iomp");
-def_mkl_config!("mkl-dynamic-lp64-seq");
-def_mkl_config!("mkl-dynamic-ilp64-iomp");
-def_mkl_config!("mkl-dynamic-ilp64-seq");
-
-// Default value
-#[cfg(all(
-    not(feature = "mkl-static-lp64-iomp"),
-    not(feature = "mkl-static-lp64-seq"),
-    not(feature = "mkl-static-ilp64-iomp"),
-    not(feature = "mkl-static-ilp64-seq"),
-    not(feature = "mkl-dynamic-lp64-iomp"),
-    not(feature = "mkl-dynamic-lp64-seq"),
-    not(feature = "mkl-dynamic-ilp64-iomp"),
-    not(feature = "mkl-dynamic-ilp64-seq"),
-))]
-const MKL_CONFIG: &str = "mkl-static-ilp64-iomp";
 
 fn main() -> Result<()> {
-    let cfg = Config::from_str(MKL_CONFIG).unwrap();
-    if let Ok(lib) = Library::new(cfg) {
-        lib.print_cargo_metadata()?;
-        return Ok(());
-    }
-
-    // Try ocipkg for static library.
-    //
-    // This does not work for dynamic library because the directory
-    // where ocipkg download archive is not searched by ld
-    // unless user set `LD_LIBRARY_PATH` explictly.
-    if cfg.link == LinkType::Static {
-        if cfg!(target_os = "linux") {
-            let _ = ocipkg::link_package(&format!(
-                "ghcr.io/rust-math/rust-mkl/linux/{}:2020.1-3038006115",
-                MKL_CONFIG
-            ));
+    let mkl = format!(
+        "mkl-{}-{}-{}",
+        match (cfg!(feature = "static"), cfg!(feature = "dynamic")) {
+            (true, false) => "static",
+            (false, true) => "dynamic",
+            (false, false) => "static",
+            _ => {
+                panic!("conflicting features: both 'static' and 'dynamic' are enabled")
+            }
+        },
+        match (cfg!(feature = "ilp64"), cfg!(feature = "lp64")) {
+            (true, false) => "ilp64",
+            (false, true) => "lp64",
+            (false, false) => "ilp64",
+            _ => {
+                panic!("conflicting features: both 'ilp64' and 'lp64' are enabled")
+            }
+        },
+        match (cfg!(feature = "iomp"), cfg!(feature = "seq")) {
+            (true, false) => "iomp",
+            (false, true) => "seq",
+            (false, false) => "iomp",
+            _ => {
+                panic!("conflicting features: both 'iomp' and 'seq' are enabled")
+            }
         }
-        if cfg!(target_os = "windows") {
-            let _ = ocipkg::link_package(&format!(
-                "ghcr.io/rust-math/rust-mkl/windows/{}:2022.0-3038006115",
-                MKL_CONFIG
-            ));
-        }
-    }
+    );
+    let lib = pkg_config::Config::new()
+        .cargo_metadata(false)
+        .probe(&mkl)?;
+    //println!("cargo:rerun-if-env-changed=MKLROOT");
 
+    for path in lib.link_paths {
+        println!("cargo:rustc-link-search={}", path.display());
+    }
+    for staticlib in lib.link_files {
+        println!(
+            "cargo:rustc-link-lib=static:+verbatim={}",
+            staticlib.display()
+        );
+    }
+    for ld_arg in lib.ld_args {
+        println!("cargo:rustc-link-arg=-Wl,{}", ld_arg.join(","));
+    }
+    for dylib in lib.libs {
+        println!("cargo:rustc-link-lib=dylib:-as-needed={}", dylib);
+    }
     Ok(())
 }
